@@ -9,21 +9,21 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useFindAndModify: false
+  useNewUrlParser: true,
+  useCreateIndex: true,
+  useFindAndModify: false,
 });
 
 app.use((req, res, next) => {
-    req.user = {
-        _id: '5ea452372dc8ee31ec775b09'
-    };
+  req.user = {
+    _id: '5ea452372dc8ee31ec775b09',
+  };
 
-    next();
+  next();
 });
 app.use('/users', require('./routes/users'));
 app.use('/cards', require('./routes/cards'));
 
 app.listen(PORT, () => {
-    console.log(`App listens port ${PORT}`);
+  console.log(`App listens port ${PORT}`);
 });
