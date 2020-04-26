@@ -1,5 +1,5 @@
+const validator = require('validator');
 const User = require('../models/user');
-
 
 const getUsers = (req, res) => {
   User.find({})
@@ -51,9 +51,9 @@ const updateProfile = (req, res) => {
 
 const updateAvatar = (req, res) => {
   const { avatar } = req.body;
-  const regExp = /^https?:\/\/(www\.)?\w+(-\w+)*(\.\w+(-\w+)*)*(\/.+)*/;
+  // const regExp = /^https?:\/\/(www\.)?\w+(-\w+)*(\.\w+(-\w+)*)*(\/.+)*/;
 
-  if (!(avatar && regExp.test(avatar))) {
+  if (!(avatar && validator.isURL(avatar))) {
     res.status(400).send({message: 'введите URL в формате: http://my-site.ru/...'});
     return;
   }
