@@ -13,7 +13,9 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
-});
+})
+  .then((status) => console.log(`MongoDB успешно подключен. Ресурсы: ${Object.keys(status.models)}`))
+  .catch(() => console.log('Не удается подключиться к MongoDB. Запустите базу данных'));
 
 app.use((req, res, next) => {
   req.user = {
