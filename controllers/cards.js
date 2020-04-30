@@ -21,9 +21,11 @@ const createCard = (req, res) => {
 const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.cardId)
     .then((card) => {
-
-      if (card) return res.send({ data: card });
-      return res.status(404).send({ message: 'Карточка не найдена' });
+      if (card) {
+        res.send({ data: card });
+        return;
+      }
+      res.status(404).send({ message: 'Карточка не найдена' });
     })
     .catch((err) => res.status(500).send({ message: err.errors }));
 };
