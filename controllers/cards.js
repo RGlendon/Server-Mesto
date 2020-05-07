@@ -19,13 +19,20 @@ const createCard = (req, res) => {
 
 
 const deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  // можно ли как-то сделать проверку через метод .findByIdAndRemove?
+  Card.findById(req.params.cardId)
     .then((card) => {
-      if (card) {
-        res.send({ data: card });
+      if (!card) {
+        res.status(404).send({ message: 'Карточка не найдена' });
         return;
       }
-      res.status(404).send({ message: 'Карточка не найдена' });
+      // если не привести к строке то card.owner это набор чисел в буфере
+      if (card.owner.toString() !== req.user._id) {
+        res.status(404).send({ message: 'Вы можете удалять только свои карточки' });
+        return;
+      }
+      res.send({ data: card });
+      card.remove();
     })
     .catch((err) => res.status(500).send({ message: err.errors }));
 };
