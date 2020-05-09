@@ -1,4 +1,3 @@
-const validator = require('validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -87,7 +86,7 @@ const updateProfile = (req, res) => {
       }
     });
 
-  User.findByIdAndUpdate(req.user._id, updateProps, { new: true })
+  User.findByIdAndUpdate(req.user._id, updateProps, { new: true, runValidators: true })
     .then((user) => res.send({ data: user }))
     .catch((err) => res.status(500)
       .send({ message: err.errors }));
