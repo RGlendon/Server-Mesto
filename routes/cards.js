@@ -17,7 +17,9 @@ router.post('/', createCard);
 router.delete('/:cardId', validateId);
 router.delete('/:cardId', deleteCard);
 
+router.put('/:cardId/likes', validateId);
 router.put('/:cardId/likes', addLike);
+router.delete('/:cardId/likes', validateId);
 router.delete('/:cardId/likes', removeLike);
 
 module.exports = router;

@@ -35,17 +35,6 @@ const createUser = (req, res) => {
     return;
   }
 
-  // решил использовать модуль mongoose-unique-validator
-  // User.findOne({ email })
-  //   .then((user) => {
-  //     if (user) {
-  //       return Promise.reject(new Error('Такая почта уже существует'));
-  //     }
-  //   })
-  //   .catch((err) => {
-  //     return res.status(400).send({ message: err.message });
-  //   });
-
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       email,
@@ -54,14 +43,14 @@ const createUser = (req, res) => {
       about,
       avatar,
     }))
+    .then((user) => User.findOne({ _id: user._id }))
+    // если не провести поиск, почему-то поле password возвращается
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400)
-          .send({ message: err.message });
+        res.status(400).send({ message: err.message });
       } else {
-        res.status(500)
-          .send({ message: err.errors });
+        res.status(500).send({ message: err.errors });
       }
     });
 };
@@ -72,8 +61,7 @@ const login = (req, res) => {
 
   User.findUserByCredentials(email, password)
     .then((user) => {
-      // токен действителен неделю как и куки, какой вариант оставить?
-      const token = jwt.sign({ _id: user._id }, 'some-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
       return res.cookie('jwt', token, {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
@@ -90,8 +78,6 @@ const login = (req, res) => {
 
 
 const updateProfile = (req, res) => {
-  // можно ли как-то прокинуть переменную updateProps в next()?
-  // тогда можно было бы вынести проверку в отдельный middleware
   const updateProps = {};
 
   Object.keys(req.body)
@@ -100,10 +86,7 @@ const updateProfile = (req, res) => {
         updateProps[key] = req.body[key];
       }
     });
-  // не очень понятен 8-ой пункт домашнего задания, как именно проконтролировать,
-  // чтобы пользователь не мог редактировать чужие профили, у меня же здесь
-  // req.user._id передается через куки и соответсвенно поиск профиля осуществляется только не
-  // его _id. Никакие req.params по данному API не передаются
+
   User.findByIdAndUpdate(req.user._id, updateProps, { new: true })
     .then((user) => res.send({ data: user }))
     .catch((err) => res.status(500)
@@ -114,13 +97,13 @@ const updateProfile = (req, res) => {
 const updateAvatar = (req, res) => {
   const { avatar } = req.body;
 
-  if (!(avatar && validator.isURL(avatar))) {
-    res.status(400)
-      .send({ message: 'введите URL в формате: http://my-site.ru/...' });
-    return;
-  }
-  // здесь аналогичная ситуация
-  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true })
+  // if (!(avatar && validator.isURL(avatar))) {
+  //   res.status(400)
+  //     .send({ message: 'введите URL в формате: http://my-site.ru/...' });
+  //   return;
+  // }
+
+  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
     .then((user) => res.send({ data: user }))
     .catch((err) => res.status(500)
       .send({ message: err.errors }));

@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+// не добавлял в .gitignore файл .env
+require('dotenv').config();
 
 const { createUser, login } = require('./controllers/users');
 const { auth } = require('./middlewares/auth');
