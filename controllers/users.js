@@ -2,28 +2,29 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
+const NotFoundError = require('../errors/not-found-err');
+const BadRequest = require('../errors/bad-request');
+const Unauthorized = require('../errors/unauthorized');
 
-const getUsers = (req, res) => {
+
+const getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch((err) => res.status(500)
-      .send({ message: err.errors }));
+    .catch(next);
 };
 
-
-const getUser = (req, res) => {
-  User.findById(req.params.userId)
-    .then((user) => {
-      if (user) return res.send({ data: user });
-      return res.status(404)
-        .send({ message: 'Пользователь не найден' });
-    })
-    .catch((err) => res.status(500)
-      .send({ message: err.errors }));
-};
+const getUser = (req, res, next) => User
+  .findById(req.params.userId)
+  .then((user) => {
+    if (!user) {
+      throw new NotFoundError('Пользователь не найден');
+    }
+    res.send({ data: user });
+  })
+  .catch(next);
 
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const { name, about, avatar } = req.body;
   const { email, password } = req.body;
 
@@ -47,15 +48,15 @@ const createUser = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: err.message });
-      } else {
-        res.status(500).send({ message: err.errors });
+        throw new BadRequest(err.message);
       }
-    });
+      return err;
+    })
+    .catch(next);
 };
 
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   User.findUserByCredentials(email, password)
@@ -70,13 +71,13 @@ const login = (req, res) => {
         .end();
     })
     .catch((err) => {
-      res.status(401)
-        .send({ message: err.message });
-    });
+      throw new Unauthorized(err.message);
+    })
+    .catch(next);
 };
 
 
-const updateProfile = (req, res) => {
+const updateProfile = (req, res, next) => {
   const updateProps = {};
 
   Object.keys(req.body)
@@ -86,26 +87,36 @@ const updateProfile = (req, res) => {
       }
     });
 
-  User.findByIdAndUpdate(req.user._id, updateProps, { new: true, runValidators: true })
+  User.findByIdAndUpdate(req.user._id, updateProps, {
+    new: true,
+    runValidators: true,
+  })
     .then((user) => res.send({ data: user }))
-    .catch((err) => res.status(500)
-      .send({ message: err.errors }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        throw new BadRequest(err.message);
+      }
+      return err;
+    })
+    .catch(next);
 };
 
 
-const updateAvatar = (req, res) => {
+const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
-  // if (!(avatar && validator.isURL(avatar))) {
-  //   res.status(400)
-  //     .send({ message: 'введите URL в формате: http://my-site.ru/...' });
-  //   return;
-  // }
-
-  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
+  User.findByIdAndUpdate(req.user._id, { avatar }, {
+    new: true,
+    runValidators: true,
+  })
     .then((user) => res.send({ data: user }))
-    .catch((err) => res.status(500)
-      .send({ message: err.errors }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        throw new BadRequest(err.message);
+      }
+      return err;
+    })
+    .catch(next);
 };
 
 

@@ -18,7 +18,7 @@ const validateId = (req, res, next) => {
 
 
 router.get('/', getUsers);
-router.get('/:userId', validateId);
+// router.get('/:userId', validateId);
 router.get('/:userId', getUser);
 
 router.patch('/me', updateProfile);

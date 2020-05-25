@@ -3,10 +3,12 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 // не добавлял в .gitignore файл .env
-require('dotenv').config();
+require('dotenv')
+  .config();
 
 const { createUser, login } = require('./controllers/users');
 const { auth } = require('./middlewares/auth');
+const NotFoundError = require('./errors/not-found-err');
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -21,6 +23,7 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useFindAndModify: false,
 })
   .then((status) => console.log(`MongoDB успешно подключен. Ресурсы: ${Object.keys(status.models)}`))
+  // не стал выводить ошибку централизованно
   .catch((err) => console.log(`Не удается подключиться к MongoDB. Запустите базу данных. ${err}`));
 
 
@@ -31,8 +34,16 @@ app.post('/signup', createUser);
 app.use('/users', auth, require('./routes/users'));
 app.use('/cards', auth, require('./routes/cards'));
 
-app.use('/:nonexistentPage', (req, res) => {
-  res.status(404).send({ message: 'Запрашиваемый ресурс не найден' });
+app.use('/:nonexistentPage', (req, res, next) => {
+  Promise.reject(new NotFoundError('Запрашиваемый ресурс не найден'))
+    .catch(next);
+});
+
+app.use((err, req, res, next) => {
+  const { statusCode = 500, message } = err;
+  res
+    .status(statusCode)
+    .send({ message: statusCode === 500 ? 'На сервере произошла ошибка' : message });
 });
 
 app.listen(PORT, () => {
