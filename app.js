@@ -7,6 +7,7 @@ const { errors } = require('celebrate');
 require('dotenv')
   .config();
 
+const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { createUser, login } = require('./controllers/users');
 const { auth } = require('./middlewares/auth');
 const NotFoundError = require('./errors/not-found-err');
@@ -30,6 +31,8 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   .catch((err) => console.log(`Не удается подключиться к MongoDB. Запустите базу данных. ${err}`));
 
 
+app.use(requestLogger);
+
 app.post('/signin', login);
 app.post('/signup', createUser);
 
@@ -41,6 +44,8 @@ app.use('/:nonexistentPage', (req, res, next) => {
     .catch(next);
 });
 
+
+app.use(errorLogger);
 
 app.use(errors());
 
