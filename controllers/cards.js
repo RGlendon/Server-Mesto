@@ -1,6 +1,5 @@
 const Card = require('../models/card');
 const NotFoundError = require('../errors/not-found-err');
-const BadRequest = require('../errors/bad-request');
 const Unauthorized = require('../errors/unauthorized');
 
 
@@ -21,18 +20,11 @@ const createCard = (req, res, next) => {
     owner: id,
   })
     .then((card) => res.send({ data: card }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        throw new BadRequest(err.message);
-      }
-      return err;
-    })
     .catch(next);
 };
 
 
 const deleteCard = (req, res, next) => {
-  // можно ли как-то сделать проверку через метод .findByIdAndRemove?
   Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {

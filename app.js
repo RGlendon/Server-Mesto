@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
-// не добавлял в .gitignore файл .env
+const { celebrate, Joi } = require('celebrate');
 require('dotenv')
   .config();
 
@@ -11,6 +11,7 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { createUser, login } = require('./controllers/users');
 const { auth } = require('./middlewares/auth');
 const NotFoundError = require('./errors/not-found-err');
+const { validatePassword, validateUrl } = require('./helpers/validations');
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -26,8 +27,9 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useCreateIndex: true,
   useFindAndModify: false,
 })
+  // eslint-disable-next-line no-console
   .then((status) => console.log(`MongoDB успешно подключен. Ресурсы: ${Object.keys(status.models)}`))
-  // не стал выводить ошибку централизованно
+  // eslint-disable-next-line no-console
   .catch((err) => console.log(`Не удается подключиться к MongoDB. Запустите базу данных. ${err}`));
 
 
@@ -39,13 +41,27 @@ app.get('/crash-test', () => {
   }, 0);
 });
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().custom(validatePassword),
+  }),
+}), login);
+
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().custom(validatePassword),
+    name: Joi.string().required().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().custom(validateUrl),
+  }),
+}), createUser);
 
 app.use('/users', auth, require('./routes/users'));
 app.use('/cards', auth, require('./routes/cards'));
 
-app.use('/:nonexistentPage', (req, res, next) => {
+app.use('/', (req, res, next) => {
   Promise.reject(new NotFoundError('Запрашиваемый ресурс не найден'))
     .catch(next);
 });
@@ -55,15 +71,20 @@ app.use(errorLogger);
 
 app.use(errors());
 
+
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
-  res
-    .status(statusCode)
+  if (err.name === 'ValidationError') {
+    res.status(400).send({ message });
+    return;
+  }
+  res.status(statusCode)
     .send({ message: statusCode === 500 ? 'На сервере произошла ошибка' : message });
 });
 
 
-
 app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`App listens port ${PORT}`);
 });

@@ -3,6 +3,8 @@ const uniqueValidator = require('mongoose-unique-validator');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
 
+const Unauthorized = require('../errors/unauthorized');
+
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -45,22 +47,25 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+// eslint-disable-next-line func-names
 userSchema.statics.findUserByCredentials = function (email, password) {
   return this.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error('Неправильная почта или пароль'));
+        throw new Unauthorized('Неправильная почта или пароль');
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(new Error('Неправильная почта или пароль'));
+            throw new Unauthorized('Неправильная почта или пароль');
           }
           return user;
         });
     });
 };
 
+
 userSchema.plugin(uniqueValidator, { message: 'Такая почта уже существует' });
+
 
 module.exports = mongoose.model('user', userSchema);
