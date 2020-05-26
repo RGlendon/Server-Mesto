@@ -1,22 +1,25 @@
 const jwt = require('jsonwebtoken');
 
+const Unauthorized = require('../errors/unauthorized');
+const { NODE_ENV, JWT_SECRET } = process.env;
+
+
 module.exports.auth = (req, res, next) => {
   const { jwt: token } = req.cookies;
   let payload;
 
   if (!jwt) {
-    return res.status(401).send({ message: 'Необходима авторизация' });
+    throw new Unauthorized('Необходима авторизация');
+    // return res.status(401).send({ message: 'Необходима авторизация' });
   }
 
   try {
-    payload = jwt.verify(token, process.env.JWT_SECRET);
+    payload = jwt.verify(token, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret');
   } catch (err) {
-    return res.status(401).send({ message: 'Необходима авторизация' });
+    throw new Unauthorized('Необходима авторизация');
   }
 
   req.user = payload;
 
-  // eslint ругался, пришлось next вернуть,
-  // хотя в /routes/cards есть аналогичная функция validateId и линтер молчит
   return next();
 };

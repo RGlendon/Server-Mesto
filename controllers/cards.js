@@ -1,44 +1,55 @@
 const Card = require('../models/card');
+const NotFoundError = require('../errors/not-found-err');
+const BadRequest = require('../errors/bad-request');
+const Unauthorized = require('../errors/unauthorized');
 
 
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .then((cards) => res.send({ data: cards }))
-    .catch((err) => res.status(500).send({ message: err.errors }));
+    .catch(next);
 };
 
 
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   const id = req.user._id;
 
-  Card.create({ name, link, owner: id })
+  Card.create({
+    name,
+    link,
+    owner: id,
+  })
     .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(500).send({ message: err.errors }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        throw new BadRequest(err.message);
+      }
+      return err;
+    })
+    .catch(next);
 };
 
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   // можно ли как-то сделать проверку через метод .findByIdAndRemove?
   Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
-        return;
+        throw new NotFoundError('Карточка не найдена');
       }
       // если не привести к строке то card.owner это набор чисел в буфере
       if (card.owner.toString() !== req.user._id) {
-        res.status(404).send({ message: 'Вы можете удалять только свои карточки' });
-        return;
+        throw new Unauthorized('Вы можете удалять только свои карточки');
       }
       res.send({ data: card });
       card.remove();
     })
-    .catch((err) => res.status(500).send({ message: err.errors }));
+    .catch(next);
 };
 
 
-const addLike = (req, res) => {
+const addLike = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -46,15 +57,15 @@ const addLike = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
-        return;
+        throw new NotFoundError('Карточка не найдена');
       }
       res.send({ data: card });
     })
-    .catch((err) => res.status(500).send({ message: err.errors }));
+    .catch(next);
 };
 
-const removeLike = (req, res) => {
+
+const removeLike = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -62,12 +73,11 @@ const removeLike = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
-        return;
+        throw new NotFoundError('Карточка не найдена');
       }
       res.send({ data: card });
     })
-    .catch((err) => res.status(500).send({ message: err.errors }));
+    .catch(next);
 };
 
 
