@@ -3,8 +3,6 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 const NotFoundError = require('../errors/not-found-err');
-const BadRequest = require('../errors/bad-request');
-const Unauthorized = require('../errors/unauthorized');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -39,9 +37,6 @@ const createUser = (req, res, next) => {
       avatar,
     }))
     .then((user) => User.findOne({ _id: user._id }))
-    // если не провести поиск, почему-то поле password возвращается
-    // вместо того чтобы делать лишний запрос к базе лучше удалить
-    // (занулить) поле password в объекте user и затаем вернуть его
     .then((user) => res.send({ data: user }))
     .catch(next);
 };

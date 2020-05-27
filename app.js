@@ -72,12 +72,11 @@ app.use(errorLogger);
 app.use(errors());
 
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars,consistent-return
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
   if (err.name === 'ValidationError') {
-    res.status(400).send({ message });
-    return;
+    return res.status(400).send({ message });
   }
   res.status(statusCode)
     .send({ message: statusCode === 500 ? 'На сервере произошла ошибка' : message });
