@@ -43,7 +43,7 @@ Content: {
 
 ```
 Code: 500 Internal Server Error
-Content: { не было такой еще) }
+Message: На сервере произошла ошибка
 ```
 
 

@@ -3,8 +3,6 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 const NotFoundError = require('../errors/not-found-err');
-const BadRequest = require('../errors/bad-request');
-const Unauthorized = require('../errors/unauthorized');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -30,13 +28,6 @@ const createUser = (req, res, next) => {
   const { name, about, avatar } = req.body;
   const { email, password } = req.body;
 
-  const regExp = /(?=^.{8,}$)(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*/;
-  if (!regExp.test(password)) {
-    res.status(400)
-      .send({ message: 'Пароль должен содержать как минимун одну прописную и заглавную буквы, цифру. Минимальная длина 8 символов' });
-    return;
-  }
-
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       email,
@@ -46,14 +37,7 @@ const createUser = (req, res, next) => {
       avatar,
     }))
     .then((user) => User.findOne({ _id: user._id }))
-    // если не провести поиск, почему-то поле password возвращается
     .then((user) => res.send({ data: user }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        throw new BadRequest(err.message);
-      }
-      return err;
-    })
     .catch(next);
 };
 
@@ -76,34 +60,16 @@ const login = (req, res, next) => {
         .send({ message: 'Вы залогинены!' }) // для проверки
         .end();
     })
-    .catch((err) => {
-      throw new Unauthorized(err.message);
-    })
     .catch(next);
 };
 
 
 const updateProfile = (req, res, next) => {
-  const updateProps = {};
-
-  Object.keys(req.body)
-    .forEach((key) => {
-      if (key === 'name' || key === 'about') {
-        updateProps[key] = req.body[key];
-      }
-    });
-
-  User.findByIdAndUpdate(req.user._id, updateProps, {
+  User.findByIdAndUpdate(req.user._id, req.body, {
     new: true,
     runValidators: true,
   })
     .then((user) => res.send({ data: user }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        throw new BadRequest(err.message);
-      }
-      return err;
-    })
     .catch(next);
 };
 
@@ -116,12 +82,6 @@ const updateAvatar = (req, res, next) => {
     runValidators: true,
   })
     .then((user) => res.send({ data: user }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        throw new BadRequest(err.message);
-      }
-      return err;
-    })
     .catch(next);
 };
 
